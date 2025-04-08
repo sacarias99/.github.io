@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Memorama K & V</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #fbe8e7;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      color: #e91e63;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 100px);
+      gap: 10px;
+      justify-content: center;
+      margin-top: 30px;
+    }
+
+    .card {
+      width: 100px;
+      height: 100px;
+      background-color: #fff;
+      border: 2px solid #e91e63;
+      border-radius: 10px;
+      cursor: pointer;
+      position: relative;
+      perspective: 1000px;
+    }
+
+    .card.flip .front {
+      transform: rotateY(180deg);
+    }
+
+    .card.flip .back {
+      transform: rotateY(0deg);
+    }
+
+    .front, .back {
+      width: 100%;
+      height: 100%;
+      border-radius: 10px;
+      backface-visibility: hidden;
+      position: absolute;
+      top: 0;
+      left: 0;
+      transition: transform 0.5s;
+    }
+
+    .front {
+      background-color: #e91e63;
+      transform: rotateY(0deg);
+    }
+
+    .back {
+      transform: rotateY(180deg);
+      background-size: cover;
+      background-position: center;
+    }
+
+    /* Pantalla emergente */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 100;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #ffe6eb;
+      backdrop-filter: blur(3px);
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      color: #e91e63;
+      overflow: hidden;
+    }
+
+    .modal-content {
+      background-color: white;
+      padding: 30px;
+      border-radius: 20px;
+      border: 3px dashed #e91e63;
+      box-shadow: 0 0 20px #e91e63;
+      max-width: 80%;
+      font-size: 20px;
+      z-index: 110;
+      position: relative;
+    }
+
+    .modal h2 {
+      margin-top: 0;
+    }
+
+    .btn-cerrar {
+      margin-top: 20px;
+      background-color: #e91e63;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .btn-cerrar:hover {
+      background-color: #d81b60;
+    }
+
+    /* Fondito decorativo con corazones usando ::before */
+    .modal::before {
+      content: "💖 💕 💗 💓 💞 💘 ❤️ 💝 ";
+      font-size: 4rem;
+      color: rgba(233, 30, 99, 0.2);
+      position: absolute;
+      top: -30%;
+      left: -30%;
+      width: 160%;
+      height: 160%;
+      animation: float-hearts 10s linear infinite;
+      white-space: nowrap;
+      transform: rotate(-15deg);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    @keyframes float-hearts {
+      0% { transform: translateX(0) rotate(-15deg); }
+      100% { transform: translateX(-50%) rotate(-15deg); }
+    }
+
+    @keyframes float {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+      100% { transform: translateY(0px); }
+    }
+
+    #cupon {
+      margin-top: 20px;
+      padding: 20px;
+      border-radius: 15px;
+      font-size: 24px;
+      font-weight: bold;
+      background-color: #fff0f5;
+      border: 4px solid #e91e63;
+      box-shadow: 0 0 15px #e91e63;
+      animation: float 3s ease-in-out infinite;
+      position: relative;
+      text-align: center;
+      color: #e91e63;
+      z-index: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Kevin Te Amo Pastelito 💕</h1>
+  <p>Encuentra todas las parejas para ganar tu recompensa 🥰</p>
+
+  <div class="grid" id="grid"></div>
+
+  <!-- Pantalla emergente -->
+  <div class="modal" id="modal">
+    <div class="modal-content">
+      <h2>¡Felicidades mi amor! 💘</h2>
+      <p>Ganaste un cupón sorpresa:</p>
+      <div id="cupon"></div>
+      <button class="btn-cerrar" onclick="cerrarModal()">Cerrar</button>
+    </div>
+  </div>
+
+  <script>
+    const images = [
+      'img/1.jpg',
+      'img/2.jpg',
+      'img/3.jpg',
+      'img/4.jpg',
+      'img/5.jpg',
+      'img/6.jpg'
+    ];
+
+    const premios = [
+      "🎬 Salida al cine",
+      "💖 Cupón de lo que tú quieras por un día",
+      "😘 Besos gratis, ilimitado, por siempre"
+    ];
+
+    let cards = [...images, ...images];
+    cards.sort(() => 0.5 - Math.random());
+
+    const grid = document.getElementById('grid');
+    const modal = document.getElementById('modal');
+    const cupon = document.getElementById('cupon');
+
+    let firstCard = null;
+    let secondCard = null;
+    let matches = 0;
+
+    cards.forEach((src, index) => {
+      const card = document.createElement('div');
+      card.classList.add('card');
+      card.dataset.index = index;
+
+      const front = document.createElement('div');
+      front.classList.add('front');
+
+      const back = document.createElement('div');
+      back.classList.add('back');
+      back.style.backgroundImage = `url(${src})`;
+
+      card.appendChild(front);
+      card.appendChild(back);
+      grid.appendChild(card);
+
+      card.addEventListener('click', () => {
+        if (card.classList.contains('flip') || secondCard) return;
+
+        card.classList.add('flip');
+        if (!firstCard) {
+          firstCard = card;
+        } else {
+          secondCard = card;
+
+          const firstImg = cards[firstCard.dataset.index];
+          const secondImg = cards[secondCard.dataset.index];
+
+          if (firstImg === secondImg) {
+            matches++;
+            firstCard = null;
+            secondCard = null;
+
+            if (matches === images.length) {
+              setTimeout(() => {
+                cupon.innerText = premios[Math.floor(Math.random() * premios.length)];
+                modal.style.display = 'flex';
+              }, 600);
+            }
+          } else {
+            setTimeout(() => {
+              firstCard.classList.remove('flip');
+              secondCard.classList.remove('flip');
+              firstCard = null;
+              secondCard = null;
+            }, 1000);
+          }
+        }
+      });
+    });
+
+    function cerrarModal() {
+      modal.style.display = 'none';
+    }
+  </script>
+
+</body>
+</html>
